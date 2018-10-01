@@ -4,6 +4,7 @@ bower_components/
 .vscode/
 .sass-cache
 .idea
+.env
 .vscode
 node_modules
 bower_components
