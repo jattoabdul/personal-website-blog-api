@@ -446,7 +446,8 @@ export const posts = {
                 ],
                 order: [
                   ['createdAt', 'DESC']
-                ]
+                ],
+                limit: 4
               })
               .then((foundPostPeeks) => {
                 // prepare the final blogPeek object
