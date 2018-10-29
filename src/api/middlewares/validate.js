@@ -29,11 +29,11 @@ export const validate = {
         });
     }
 
-    if (req.body.username.length < 6) {
+    if (req.body.username.length < 2) {
       return res.status(400)
         .json({
           error: {
-            message: 'username must be atleast 6 characters or more'
+            message: 'username must be atleast 2 characters or more'
           }
         });
     }
@@ -41,7 +41,7 @@ export const validate = {
     if (req.body.password.length < 6) {
       return res.status(400)
         .json({ error: {
-          message: 'password must be 8 characters or more'
+          message: 'password must be 6 characters or more'
         }
         });
     }

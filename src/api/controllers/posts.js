@@ -17,8 +17,8 @@ dotenv.config();
 /**
  * Get a random integer between `min` and `max`.
  *
- * @param {number} min - min number
- * @param {number} max - max number
+ * @param {number} maxLimit
+ * @param {number} maxLength
  * @return {number} a random integer
  */
 function getRandomInt(maxLimit = 10, maxLength = 4) {
@@ -53,7 +53,9 @@ export const posts = {
     } = req.body;
     const userId = req.authToken.id;
     const publishedAt = published === 'true' ? new Date() : null;
-    const categoriesArray = categories.split(',').map(Number) || [1];
+    let categoriesArray = categories.split(',').map(Number) || [1];
+    categoriesArray.push(1);
+    categoriesArray = categoriesArray.filter((v, i, a) => a.indexOf(v) === i);
 
     models.Posts
       .create({
@@ -131,6 +133,13 @@ export const posts = {
         } else if ((published === 'false') && publishedAt) {
           publishedAt = null;
         }
+        let newThumbnailUrl = '';
+
+        if (thumbnailUrl === '') {
+          newThumbnailUrl = undefined;
+        } else {
+          newThumbnailUrl = thumbnailUrl;
+        }
 
         const categoriesArray = (categories && categories.trim() !== '') ?
           categories.split(',').map(Number) :
@@ -142,7 +151,7 @@ export const posts = {
             content: content || foundPost.content,
             authorId: foundPost.authorId,
             publishedAt,
-            thumbnailUrl: thumbnailUrl || foundPost.thumbnailUrl,
+            thumbnailUrl: newThumbnailUrl === undefined ? foundPost.thumbnailUrl : newThumbnailUrl,
           })
             .then(() => {
               models.Categories
@@ -174,7 +183,7 @@ export const posts = {
               if (err) {
                 err = {
                   error: {
-                    message: err.errors[0].message
+                    message: err.message
                   }
                 };
                 return res.status(500).json(err);
@@ -186,7 +195,7 @@ export const posts = {
         if (err) {
           err = {
             error: {
-              message: err.errors[0].message
+              message: err.message
             }
           };
           return res.status(500).json(err);
@@ -263,7 +272,8 @@ export const posts = {
         include: [
           {
             model: models.Users,
-            include: [models.Profiles]
+            include: [models.Profiles],
+            attributes: { exclude: 'password' }
           },
           {
             model: models.Categories,
@@ -326,7 +336,8 @@ export const posts = {
         include: [
           {
             model: models.Users,
-            include: [models.Profiles]
+            include: [models.Profiles],
+            attributes: { exclude: 'password' }
           },
           {
             model: models.Categories,
@@ -341,15 +352,102 @@ export const posts = {
             $ne: null
           }
         },
+        order: [
+          ['createdAt', 'DESC']
+        ],
+        distinct: true,
         limit: limitValue,
         offset: pageValue * limitValue
       })
       .then((allPosts) => {
         const size = allPosts.rows.length;
         return res.status(200).json({
-          pagination: paginate(allPosts.count - 1, limitValue, pageValue, size),
+          pagination: paginate(allPosts.count, limitValue, pageValue, size),
           posts: allPosts.rows
         });
+      })
+      .catch(err => res.status(500).json({ err }));
+  },
+
+  /**
+   * viewAllByCat - view all post (only published) by category
+   *
+   * @param {object} req
+   * @param {object} res
+   *
+   * @return {object} user - data
+   */
+  viewAllByCat(req, res) {
+    const limitValue = req.query.limit || 10;
+    const pageValue = (req.query.page - 1) || 0;
+    const category = req.query.category || 1;
+
+    models.Categories
+      .findOne({
+        where: {
+          id: category
+        }
+      })
+      .then((aCategory) => {
+        // get category Ids
+        const catId = aCategory.id;
+
+        // get all postIds with this categoryIds from the PostCategories Table
+        models.PostCategories
+          .findAll({
+            where: {
+              categoryId: catId
+            },
+            order: [
+              ['categoryId', 'ASC']
+            ],
+          })
+          .then((postCategoriez) => {
+            // get post Ids
+            const postIds = postCategoriez.map(postCat => postCat.postId);
+
+            // query the posts table for this posts and add their category
+            models.Posts
+              .findAndCountAll({
+                where: {
+                  id: [...postIds],
+                  publishedAt: {
+                    $ne: null
+                  }
+                },
+                include: [
+                  {
+                    model: models.Users,
+                    include: [models.Profiles],
+                    attributes: { exclude: 'password' }
+                  },
+                  {
+                    model: models.Categories,
+                    as: 'Categories',
+                    required: false,
+                    attributes: ['id', 'name'],
+                    through: { attributes: [] }
+                  }
+                ],
+                order: [
+                  ['createdAt', 'DESC']
+                ],
+                distinct: true,
+                limit: limitValue,
+                offset: pageValue * limitValue
+              })
+              .then((foundPostsByCat) => {
+                // prepare the final blogPeek object
+                const size = foundPostsByCat.rows.length;
+                const postCounts = foundPostsByCat.count;
+                return res.status(200).json({
+                  pagination: paginate(postCounts, limitValue, pageValue, size),
+                  posts: foundPostsByCat.rows
+                });
+              })
+              .catch(err => res.status(500).json({ err }));
+          })
+          .catch(err => res.status(500).json({ err }));
       })
       .catch(err => res.status(500).json({ err }));
   },
@@ -370,7 +468,8 @@ export const posts = {
         include: [
           {
             model: models.Users,
-            include: [models.Profiles]
+            include: [models.Profiles],
+            attributes: { exclude: 'password' }
           },
           {
             model: models.Categories,
@@ -380,13 +479,17 @@ export const posts = {
             through: { attributes: [] }
           }
         ],
+        order: [
+          ['createdAt', 'DESC']
+        ],
+        distinct: true,
         limit: limitValue,
         offset: pageValue * limitValue
       })
       .then((allPosts) => {
         const size = allPosts.rows.length;
         return res.status(200).json({
-          pagination: paginate(allPosts.count - 1, limitValue, pageValue, size),
+          pagination: paginate(allPosts.count, limitValue, pageValue, size),
           posts: allPosts.rows
         });
       })

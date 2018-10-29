@@ -293,7 +293,6 @@ describe('Users Controllers Tests', () => {
           })
           .end((err, res) => {
             hash = res.body.data.hash;
-            console.log('password reset request success ======>', hash);
             res.should.have.status(200);
             assert.strictEqual(
               res.body.data.message,

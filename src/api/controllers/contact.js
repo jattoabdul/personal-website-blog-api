@@ -88,7 +88,8 @@ export const contact = {
           res.status(200)
             .json({
               data: {
-                message: 'You have successfully subscribed to our blogposts'
+                message: 'You have successfully subscribed to our blogposts',
+                subscribed: true
               }
             });
         }
@@ -97,7 +98,8 @@ export const contact = {
         if (err.errors[0].message === 'email must be unique') {
           err = {
             error: {
-              message: 'email already exists'
+              message: 'email already exists',
+              subscribed: false
             }
           };
           return res.status(409).send(err);
@@ -105,7 +107,8 @@ export const contact = {
         if (err.errors[0].message === 'Validation isEmail on email failed') {
           err = {
             error: {
-              message: 'not an email'
+              message: 'not an email',
+              subscribed: false
             }
           };
           return res.status(400).send(err);
@@ -113,7 +116,8 @@ export const contact = {
         if (!err) {
           err = {
             error: {
-              message: 'internal server error occured'
+              message: 'internal server error occured',
+              subscribed: false
             }
           };
           return res.status(500).send(err);

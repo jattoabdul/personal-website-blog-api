@@ -131,9 +131,16 @@ export default (app) => {
 
   // API route for reader, admin & editors to view all published posts
   app.get('/api/v1/posts',
-    authenticate.user,
-    authenticate.permit('admin', 'editor', 'reader'),
+    // authenticate.user,
+    // authenticate.permit('admin', 'editor', 'reader'),
     posts.viewAll
+  );
+
+  // API route for reader, admin & editors to view all pub posts by category
+  app.get('/api/v1/posts/withcat',
+    // authenticate.user,
+    // authenticate.permit('admin', 'editor', 'reader'),
+    posts.viewAllByCat
   );
 
   // API route for admin & editors to view all posts
