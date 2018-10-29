@@ -24,6 +24,15 @@ module.exports = {
         lastLogin: null,
         createdAt: new Date(),
         updatedAt: new Date()
+      },
+      {
+        username: 'superadmin',
+        password: hashedAdminPassword,
+        email: 'amasafirdausa@gmail.com',
+        roleId: 3,
+        lastLogin: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     ], {});
   },
